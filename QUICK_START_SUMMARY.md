@@ -144,31 +144,6 @@ git push origin main
 
 ---
 
-## 🧪 Testing Your Knowledge
-
-Try these exercises to understand the code:
-
-### Beginner
-1. Change the login button color in `LoginPage.tsx`
-2. Add a new field to the registration form
-3. Change the poll interval from 5 minutes to 1 minute
-4. Add a new city (Montreal) to the city list
-
-### Intermediate
-1. Add a new API endpoint: GET /api/v1/stats (returns total users, products, stores)
-2. Add a "Favorites" button to each DealCard
-3. Create a new database table for user favorites
-4. Display favorite products on dashboard
-
-### Advanced
-1. Implement price drop alerts (email when price decreases by >20%)
-2. Add a map view showing stores using Leaflet or Google Maps
-3. Implement server-side pagination for products
-4. Add unit tests for API endpoints using pytest
-5. Add frontend tests using React Testing Library
-
----
-
 ## 📊 Key Metrics
 
 **Lines of Code:**

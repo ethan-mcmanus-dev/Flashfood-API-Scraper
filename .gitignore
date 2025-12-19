@@ -60,6 +60,10 @@ coverage.xml
 # Local files
 storage.json
 
+# Old testing scripts (not part of main project)
+flashfoodtesting.py
+flashfoodhacks.py
+
 # Environment files
 .env
 backend/.env
