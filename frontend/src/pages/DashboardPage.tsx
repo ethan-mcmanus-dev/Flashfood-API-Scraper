@@ -52,8 +52,8 @@ export const DashboardPage: React.FC = () => {
       }),
   });
 
-  // WebSocket for real-time updates
-  const { lastMessage } = useWebSocket(token, {
+  // WebSocket for real-time updates (temporarily disabled to prevent connection loop)
+  const { lastMessage } = useWebSocket(null, {
     onMessage: (message: WebSocketMessage) => {
       if (message.type === 'new_deals') {
         setNotification(message.message);

@@ -4,8 +4,13 @@ Application configuration settings.
 Loads environment variables and provides type-safe configuration access.
 """
 
-from typing import List
+import json
+import logging
+from typing import List, Any
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -53,11 +58,55 @@ class Settings(BaseSettings):
         auth = f":{self.REDIS_PASSWORD}@" if self.REDIS_PASSWORD else ""
         return f"redis://{auth}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:5173",  # Vite default
-        "http://localhost:3000",  # Alternative
-    ]
+    # CORS - Enhanced with flexible parsing
+    BACKEND_CORS_ORIGINS: str | List[str] = "http://localhost:5173,http://localhost:3000"
+
+    @field_validator('BACKEND_CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v: Any) -> List[str]:
+        """
+        Parse CORS origins from various formats (JSON, CSV, space-separated).
+        
+        Supports:
+        - JSON array: '["http://localhost:5173","http://localhost:3000"]'
+        - CSV format: 'http://localhost:5173,http://localhost:3000'
+        - Space-separated: 'http://localhost:5173 http://localhost:3000'
+        - Single value: 'http://localhost:5173'
+        """
+        if isinstance(v, list):
+            return v
+        
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            
+            # Try JSON format first
+            if v.startswith('[') and v.endswith(']'):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(item).strip() for item in parsed if item]
+                except json.JSONDecodeError:
+                    pass
+            
+            # Try comma-separated
+            if ',' in v:
+                return [item.strip() for item in v.split(',') if item.strip()]
+            
+            # Try space-separated
+            if ' ' in v:
+                return [item.strip() for item in v.split() if item.strip()]
+            
+            # Single value
+            return [v]
+        
+        # Fallback to default
+        logger.warning(f"Could not parse CORS origins: {v}, using defaults")
+        return [
+            "http://localhost:5173",
+            "http://localhost:3000",
+        ]
 
     # Email (Resend)
     RESEND_API_KEY: str | None = None
@@ -66,7 +115,7 @@ class Settings(BaseSettings):
     # Flashfood API
     FLASHFOOD_API_KEY: str = "wEqsr63WozvJwNV4XKPv"
     FLASHFOOD_BASE_URL: str = "https://app.shopper.flashfood.com/api/v1"
-    FLASHFOOD_POLL_INTERVAL_SECONDS: int = 300  # 5 minutes
+    FLASHFOOD_POLL_INTERVAL_SECONDS: int = 10  # 10 seconds for testing
 
     # Supported cities with coordinates
     SUPPORTED_CITIES: dict = {
@@ -76,6 +125,43 @@ class Settings(BaseSettings):
         "edmonton": {"lat": 53.5461, "lon": -113.4938, "name": "Edmonton"},
         "waterloo": {"lat": 43.4643, "lon": -80.5204, "name": "Waterloo/Kitchener"},
     }
+
+    @model_validator(mode='after')
+    def validate_configuration(self):
+        """Validate complete configuration after parsing."""
+        errors = []
+        
+        # Validate SECRET_KEY
+        if not self.SECRET_KEY or len(self.SECRET_KEY) < 32:
+            errors.append({
+                "field": "SECRET_KEY",
+                "error": "SECRET_KEY must be at least 32 characters long",
+                "resolution": "Generate a secure key: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            })
+        
+        # Validate CORS origins format
+        for origin in self.BACKEND_CORS_ORIGINS:
+            if not origin.startswith(('http://', 'https://')):
+                errors.append({
+                    "field": "BACKEND_CORS_ORIGINS",
+                    "error": f"Invalid CORS origin format: {origin}",
+                    "resolution": "CORS origins must start with http:// or https://"
+                })
+        
+        # Validate database configuration
+        if not all([self.POSTGRES_USER, self.POSTGRES_PASSWORD, self.POSTGRES_DB]):
+            errors.append({
+                "field": "DATABASE",
+                "error": "Missing required database configuration",
+                "resolution": "Set POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB environment variables"
+            })
+        
+        if errors:
+            error_details = "\n".join([f"- {err['field']}: {err['error']} ({err['resolution']})" for err in errors])
+            logger.error(f"Configuration validation failed:\n{error_details}")
+            raise ValueError(f"Configuration validation failed:\n{error_details}")
+        
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

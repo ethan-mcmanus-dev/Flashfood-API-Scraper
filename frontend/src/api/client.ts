@@ -4,7 +4,8 @@
  * Handles authentication, request/response formatting, and error handling.
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosError } from 'axios';
 import type {
   User,
   Store,

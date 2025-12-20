@@ -53,6 +53,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=0
       - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - BACKEND_CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000
     volumes:
       - ./backend/app:/app/app
     depends_on:

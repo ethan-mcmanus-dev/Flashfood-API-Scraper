@@ -204,9 +204,22 @@ class FlashfoodService:
         Returns:
             Normalized product dictionary
         """
-        # Calculate discount percentage
-        original_price = raw_item.get("originalPrice")
-        discount_price = raw_item.get("price", 0)
+        # Helper function to safely convert price to float
+        def safe_price_convert(price_value):
+            """Convert price to float, handling both strings and numbers."""
+            if price_value is None:
+                return 0.0
+            try:
+                return float(price_value)
+            except (ValueError, TypeError):
+                return 0.0
+
+        # Calculate discount percentage with safe type conversion
+        original_price_raw = raw_item.get("originalPrice")
+        discount_price_raw = raw_item.get("price", 0)
+        
+        original_price = safe_price_convert(original_price_raw)
+        discount_price = safe_price_convert(discount_price_raw)
         discount_percent = None
 
         if original_price and original_price > 0:
