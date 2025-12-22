@@ -204,6 +204,8 @@ class FlashfoodService:
         Returns:
             Normalized product dictionary
         """
+        from app.services.category_detector import CategoryDetector
+        
         # Helper function to safely convert price to float
         def safe_price_convert(price_value):
             """Convert price to float, handling both strings and numbers."""
@@ -233,11 +235,19 @@ class FlashfoodService:
             except (ValueError, AttributeError):
                 pass
 
+        # Get category from API or detect it
+        category = raw_item.get("category")
+        if not category:
+            # Use category detection based on name and description
+            name = raw_item.get("name", "Unknown Item")
+            description = raw_item.get("description")
+            category = CategoryDetector.detect_category(name, description)
+
         return {
             "external_id": raw_item.get("id"),
             "name": raw_item.get("name", "Unknown Item"),
             "description": raw_item.get("description"),
-            "category": raw_item.get("category"),
+            "category": category,
             "original_price": original_price,
             "discount_price": discount_price,
             "discount_percent": discount_percent,

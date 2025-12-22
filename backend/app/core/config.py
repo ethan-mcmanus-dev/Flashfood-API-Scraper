@@ -108,9 +108,16 @@ class Settings(BaseSettings):
             "http://localhost:3000",
         ]
 
-    # Email (Resend)
+    # Email Configuration
+    EMAIL_SERVICE: str = "gmail"  # Options: "resend", "gmail", "mailgun"
+    
+    # Gmail SMTP (free option)
+    GMAIL_EMAIL: str | None = None
+    GMAIL_APP_PASSWORD: str | None = None
+    
+    # Resend (requires domain verification)
     RESEND_API_KEY: str | None = None
-    EMAIL_FROM: str = "notifications@flashfood-tracker.com"
+    EMAIL_FROM: str = "onboarding@resend.dev"
 
     # Flashfood API
     FLASHFOOD_API_KEY: str = "wEqsr63WozvJwNV4XKPv"

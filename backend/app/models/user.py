@@ -44,4 +44,4 @@ class User(Base):
     )
 
     # Relationships
-    preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan")
+    preferences = relationship("UserPreference", back_populates="user", cascade="all, delete-orphan", uselist=False)

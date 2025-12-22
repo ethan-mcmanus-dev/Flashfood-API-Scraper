@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { PreferencesPage } from './pages/PreferencesPage';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -51,6 +52,14 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/preferences"
+          element={
+            <ProtectedRoute>
+              <PreferencesPage />
             </ProtectedRoute>
           }
         />

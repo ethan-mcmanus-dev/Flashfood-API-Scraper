@@ -22,6 +22,7 @@ from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.services.flashfood import FlashfoodService
 from app.services.websocket import manager
+from app.services.notification import notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class FlashfoodScheduler:
 
         try:
             new_deals_count = 0
+            new_deals_list = []  # Track new deals for notifications
 
             # Iterate through each tracked city
             for city_key, city_info in self.tracked_cities.items():
@@ -98,8 +100,9 @@ class FlashfoodScheduler:
 
                         # Process items for this store
                         items = store_data.get("items", [])
-                        new_items = await self._process_store_items(db, db_store, items)
+                        new_items, new_products = await self._process_store_items(db, db_store, items)
                         new_deals_count += new_items
+                        new_deals_list.extend(new_products)  # Add new products to notification list
 
                 except Exception as e:
                     logger.error(f"Error fetching deals for {city_info['name']}: {e}")
@@ -107,7 +110,15 @@ class FlashfoodScheduler:
 
             logger.info(f"Deal refresh complete. Found {new_deals_count} new deals.")
 
-            # Broadcast notification if new deals found
+            # Send email notifications for new deals
+            if new_deals_list:
+                try:
+                    notifications_sent = await notification_service.send_new_deal_notifications(new_deals_list, db)
+                    logger.info(f"Sent {notifications_sent} email notifications")
+                except Exception as e:
+                    logger.error(f"Error sending notifications: {e}")
+
+            # Broadcast WebSocket notification if new deals found
             if new_deals_count > 0:
                 await manager.broadcast({
                     "type": "new_deals",
@@ -126,7 +137,7 @@ class FlashfoodScheduler:
         db: Session,
         store: Store,
         items: list[Dict[str, Any]],
-    ) -> int:
+    ) -> tuple[int, list[Product]]:
         """
         Process items for a store and detect new deals.
 
@@ -136,9 +147,10 @@ class FlashfoodScheduler:
             items: List of raw item data from Flashfood API
 
         Returns:
-            Number of new items detected
+            Tuple of (number of new items detected, list of new Product objects)
         """
         new_items_count = 0
+        new_products = []
         current_external_ids = set()
 
         for item_data in items:
@@ -161,8 +173,12 @@ class FlashfoodScheduler:
                     db.commit()
                     db.refresh(db_product)
 
+                    # Load the store relationship for notifications
+                    db_product.store = store
+
                     logger.info(f"New deal: {item_info['name']} at {store.name} for ${item_info['discount_price']}")
                     new_items_count += 1
+                    new_products.append(db_product)  # Add to notification list
 
                     # Record initial price history
                     price_history = PriceHistory(
@@ -212,7 +228,7 @@ class FlashfoodScheduler:
 
         db.commit()
 
-        return new_items_count
+        return new_items_count, new_products
 
     def start(self):
         """Start the background scheduler."""

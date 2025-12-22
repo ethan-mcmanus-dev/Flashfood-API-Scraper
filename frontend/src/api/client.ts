@@ -145,6 +145,7 @@ export const productApi = {
     min_discount?: number;
     search?: string;
     limit?: number;
+    use_preferences?: boolean;
   }): Promise<Product[]> => {
     const response = await apiClient.get<Product[]>('/products/', { params });
     return response.data;

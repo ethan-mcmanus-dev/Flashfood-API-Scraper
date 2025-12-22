@@ -60,11 +60,15 @@ export interface UserPreference {
   user_id: number;
   city: string;
   max_distance_km: number;
+  selected_store_ids: number[];
   email_notifications: boolean;
+  web_push_notifications: boolean;
   notify_new_deals: boolean;
   notify_price_drops: boolean;
   min_discount_percent: number;
   favorite_categories: string[];
+  notification_start_time: string; // Time in HH:MM format
+  notification_end_time: string;   // Time in HH:MM format
   created_at: string;
   updated_at: string;
 }

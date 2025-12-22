@@ -27,6 +27,7 @@ def list_products(
     min_discount: Optional[int] = Query(None, ge=0, le=100, description="Minimum discount percentage"),
     search: Optional[str] = Query(None, description="Search product names"),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of products"),
+    use_preferences: bool = Query(False, description="Filter based on user preferences"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[dict]:
@@ -40,28 +41,55 @@ def list_products(
         min_discount: Minimum discount percentage
         search: Search term for product names
         limit: Maximum results to return
+        use_preferences: Use user preferences for filtering
         db: Database session
         current_user: Authenticated user
 
     Returns:
         List of products with store information
     """
+    from app.models.user_preference import UserPreference
+    
     # Build query with store join
     query = db.query(Product).join(Store)
 
-    # Apply filters
-    if city:
-        query = query.filter(Store.city == city)
+    # If using preferences, get user preferences and apply them
+    if use_preferences:
+        preferences = db.query(UserPreference).filter(
+            UserPreference.user_id == current_user.id
+        ).first()
+        
+        if preferences:
+            # Filter by user's city
+            if preferences.city:
+                query = query.filter(Store.city == preferences.city)
+            
+            # Filter by selected stores if specified
+            if preferences.selected_store_ids:
+                query = query.filter(Product.store_id.in_(preferences.selected_store_ids))
+            
+            # Filter by minimum discount
+            if preferences.min_discount_percent > 0:
+                query = query.filter(Product.discount_percent >= preferences.min_discount_percent)
+            
+            # Filter by favorite categories
+            if preferences.favorite_categories:
+                query = query.filter(Product.category.in_(preferences.favorite_categories))
+    else:
+        # Apply manual filters when not using preferences
+        if city:
+            query = query.filter(Store.city == city)
 
-    if store_id:
-        query = query.filter(Product.store_id == store_id)
+        if store_id:
+            query = query.filter(Product.store_id == store_id)
 
-    if category:
-        query = query.filter(Product.category == category)
+        if category:
+            query = query.filter(Product.category == category)
 
-    if min_discount is not None:
-        query = query.filter(Product.discount_percent >= min_discount)
+        if min_discount is not None:
+            query = query.filter(Product.discount_percent >= min_discount)
 
+    # Always apply search filter
     if search:
         query = query.filter(Product.name.ilike(f"%{search}%"))
 
@@ -176,11 +204,7 @@ def list_categories(
     Returns:
         List of unique category names
     """
-    categories = (
-        db.query(Product.category)
-        .filter(Product.category.isnot(None))
-        .distinct()
-        .all()
-    )
-
-    return [cat[0] for cat in categories if cat[0]]
+    from app.services.category_detector import CategoryDetector
+    
+    # Return all available categories from our detector
+    return CategoryDetector.get_available_categories()
