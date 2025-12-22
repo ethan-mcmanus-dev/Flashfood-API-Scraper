@@ -283,30 +283,6 @@ export const PreferencesPage: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch('http://localhost:8000/api/v1/notifications/test', {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-                        'Content-Type': 'application/json',
-                      },
-                    });
-                    const result = await response.json();
-                    if (response.ok) {
-                      alert(`Test notification sent! Check your email and backend logs.`);
-                    } else {
-                      alert(`Error: ${result.detail}`);
-                    }
-                  } catch (error) {
-                    alert(`Error sending test notification: ${error}`);
-                  }
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-yellow-100 border border-yellow-300 rounded-md hover:bg-yellow-200"
-              >
-                Test Notifications
-              </button>
-              <button
                 onClick={handleSave}
                 disabled={saving}
                 className="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 disabled:opacity-50"

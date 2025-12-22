@@ -122,7 +122,7 @@ class Settings(BaseSettings):
     # Flashfood API
     FLASHFOOD_API_KEY: str = "wEqsr63WozvJwNV4XKPv"
     FLASHFOOD_BASE_URL: str = "https://app.shopper.flashfood.com/api/v1"
-    FLASHFOOD_POLL_INTERVAL_SECONDS: int = 10  # 10 seconds for testing
+    FLASHFOOD_POLL_INTERVAL_SECONDS: int = 300  # 5 minutes for production
 
     # Supported cities with coordinates
     SUPPORTED_CITIES: dict = {
