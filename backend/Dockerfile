@@ -19,8 +19,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY backend/app ./app
 
+# Copy startup script
+COPY backend/start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 # Expose port
 EXPOSE 8000
 
 # Run the application
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["./start.sh"]

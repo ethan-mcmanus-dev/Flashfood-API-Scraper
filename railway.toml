@@ -3,7 +3,8 @@ builder = "dockerfile"
 dockerfilePath = "backend/Dockerfile"
 
 [deploy]
-healthcheckPath = "/health"
+# Temporarily disable health check to see if app starts
+# healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
 
