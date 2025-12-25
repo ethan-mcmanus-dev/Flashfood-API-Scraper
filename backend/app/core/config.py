@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "flashfood"
 
     @property
-    def get_database_url(self) -> str:
+    def DATABASE_URL_COMPUTED(self) -> str:
         """Get database URL - prefer Railway's DATABASE_URL, fallback to constructed URL."""
         if self.DATABASE_URL:
             return self.DATABASE_URL
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str | None = None
 
     @property
-    def get_redis_url(self) -> str:
+    def REDIS_URL_COMPUTED(self) -> str:
         """Get Redis URL - prefer Railway's REDIS_URL, fallback to constructed URL."""
         if self.REDIS_URL:
             return self.REDIS_URL

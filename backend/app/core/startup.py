@@ -177,7 +177,7 @@ class StartupValidator:
         try:
             # Create Redis connection
             redis_client = redis.from_url(
-                settings.get_redis_url(),
+                settings.REDIS_URL_COMPUTED,
                 socket_timeout=10.0,
                 socket_connect_timeout=10.0
             )
