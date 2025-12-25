@@ -20,9 +20,8 @@ from app.core.config import settings
 from app.core.startup import startup_validator, DiagnosticReporter, ComponentStatus
 from app.db.database import engine
 from app.db.base import Base
-from app.db.database import engine
-from app.db.base import Base
 from app.services.websocket import manager
+from app.services.scheduler import scheduler
 from app.services.scheduler import scheduler
 from app.models.user import User
 
@@ -91,10 +90,9 @@ async def lifespan(app: FastAPI):
 
     # Start background scheduler for Flashfood data polling
     try:
-        # Skip scheduler startup for initial deployment
-        logger.info("Skipping scheduler startup for initial deployment debugging")
-        # scheduler.start()
-        # logger.info("Background scheduler started for Flashfood data polling")
+        logger.info("Starting background scheduler for Flashfood data polling...")
+        scheduler.start()
+        logger.info("Background scheduler started successfully")
     except Exception as e:
         logger.error(f"Failed to start scheduler: {e}")
         # Don't fail startup if scheduler fails
