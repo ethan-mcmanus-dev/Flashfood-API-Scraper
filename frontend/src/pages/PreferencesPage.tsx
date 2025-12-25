@@ -4,15 +4,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { preferenceApi, storeApi } from '../api/client';
 import { Navbar } from '../components/layout/Navbar';
-import type { UserPreference, Store } from '../types';
+import type { Store } from '../types';
 
 export const PreferencesPage: React.FC = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [preferences, setPreferences] = useState<UserPreference | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,7 +45,6 @@ export const PreferencesPage: React.FC = () => {
       
       // Load user preferences
       const userPrefs = await preferenceApi.getPreferences();
-      setPreferences(userPrefs);
       
       // Set form state from preferences
       setSelectedCity(userPrefs.city || 'calgary');
