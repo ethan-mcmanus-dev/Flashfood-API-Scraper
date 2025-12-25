@@ -255,6 +255,71 @@ class NotificationService:
         logger.info(f"Sent {notifications_sent} price drop notifications")
         return notifications_sent
 
+    async def send_preference_test_email(
+        self, 
+        user: User, 
+        products: List[Product], 
+        preferences: UserPreference
+    ) -> bool:
+        """
+        Send a test email with current deals matching user preferences.
+        
+        Args:
+            user: User to send email to
+            products: List of matching products
+            preferences: User's current preferences
+            
+        Returns:
+            True if email sent successfully
+        """
+        try:
+            if not products:
+                # Send email saying no matches found
+                success = await self.email_service.send_preference_test_no_matches(
+                    to_email=user.email,
+                    user_name=user.full_name or user.email,
+                    preferences_summary={
+                        "city": preferences.city,
+                        "min_discount": preferences.min_discount_percent,
+                        "categories": preferences.favorite_categories or [],
+                        "store_count": len(preferences.selected_store_ids) if preferences.selected_store_ids else 0
+                    }
+                )
+            else:
+                # Convert products to dict format for email
+                deals_data = []
+                for product in products:
+                    deals_data.append({
+                        "name": product.name,
+                        "description": product.description,
+                        "category": product.category,
+                        "original_price": product.original_price,
+                        "discount_price": product.discount_price,
+                        "discount_percent": product.discount_percent,
+                        "quantity_available": product.quantity_available,
+                        "expiry_date": product.expiry_date.isoformat() if product.expiry_date else None,
+                        "store_name": product.store.name,
+                        "store_city": product.store.city,
+                    })
+                
+                success = await self.email_service.send_preference_test_matches(
+                    to_email=user.email,
+                    user_name=user.full_name or user.email,
+                    deals=deals_data,
+                    preferences_summary={
+                        "city": preferences.city,
+                        "min_discount": preferences.min_discount_percent,
+                        "categories": preferences.favorite_categories or [],
+                        "store_count": len(preferences.selected_store_ids) if preferences.selected_store_ids else 0
+                    }
+                )
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error sending preference test email to {user.email}: {e}")
+            return False
+
 
 # Global notification service instance
 notification_service = NotificationService()

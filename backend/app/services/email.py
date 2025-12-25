@@ -239,6 +239,174 @@ class EmailService:
         # For now, just use the mock implementation
         return True
 
+    async def send_preference_test_matches(
+        self,
+        to_email: str,
+        user_name: str,
+        deals: List[Dict[str, Any]],
+        preferences_summary: Dict[str, Any],
+    ) -> bool:
+        """
+        Send test email with deals matching user preferences.
+        """
+        if self.service == "mock":
+            logger.info(f"MOCK EMAIL - Preference test with matches to {to_email}:")
+            logger.info(f"Subject: ✅ Preference Test: {len(deals)} deals match your settings!")
+            logger.info(f"Recipient: {user_name} ({to_email})")
+            logger.info(f"Preferences: City={preferences_summary.get('city')}, Min Discount={preferences_summary.get('min_discount')}%")
+            logger.info(f"Matching deals: {[deal['name'] for deal in deals[:5]]}")
+            return True
+
+        elif self.service == "gmail":
+            return await self._send_preference_test_gmail(to_email, user_name, deals, preferences_summary, has_matches=True)
+            
+        return False
+
+    async def send_preference_test_no_matches(
+        self,
+        to_email: str,
+        user_name: str,
+        preferences_summary: Dict[str, Any],
+    ) -> bool:
+        """
+        Send test email when no deals match user preferences.
+        """
+        if self.service == "mock":
+            logger.info(f"MOCK EMAIL - Preference test with no matches to {to_email}:")
+            logger.info(f"Subject: ℹ️ Preference Test: No current deals match your settings")
+            logger.info(f"Recipient: {user_name} ({to_email})")
+            logger.info(f"Preferences: City={preferences_summary.get('city')}, Min Discount={preferences_summary.get('min_discount')}%")
+            return True
+
+        elif self.service == "gmail":
+            return await self._send_preference_test_gmail(to_email, user_name, [], preferences_summary, has_matches=False)
+            
+        return False
+
+    async def _send_preference_test_gmail(
+        self,
+        to_email: str,
+        user_name: str,
+        deals: List[Dict[str, Any]],
+        preferences_summary: Dict[str, Any],
+        has_matches: bool,
+    ) -> bool:
+        """Send preference test email via Gmail SMTP."""
+        try:
+            # Create message
+            msg = MIMEMultipart('alternative')
+            if has_matches:
+                msg['Subject'] = f"✅ Preference Test: {len(deals)} deals match your settings!"
+            else:
+                msg['Subject'] = "ℹ️ Preference Test: No current deals match your settings"
+            msg['From'] = self.gmail_email
+            msg['To'] = to_email
+
+            # Create preferences summary
+            prefs_html = f"""
+            <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                <h3 style="margin: 0 0 12px 0;">Your Current Preferences:</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>City:</strong> {preferences_summary.get('city', 'Not set')}</li>
+                    <li><strong>Minimum Discount:</strong> {preferences_summary.get('min_discount', 0)}%</li>
+                    <li><strong>Favorite Categories:</strong> {', '.join(preferences_summary.get('categories', [])) or 'All categories'}</li>
+                    <li><strong>Selected Stores:</strong> {preferences_summary.get('store_count', 0)} stores</li>
+                </ul>
+            </div>
+            """
+
+            if has_matches:
+                # Create deals HTML
+                deals_html = ""
+                for deal in deals[:10]:  # Limit to 10 deals per email
+                    deals_html += f"""
+                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <h3 style="margin: 0 0 8px 0;">{deal['name']}</h3>
+                        <p style="margin: 0; color: #6b7280;">
+                            <strong>${deal['discount_price']:.2f}</strong>
+                            {f" (was ${deal['original_price']:.2f})" if deal.get('original_price') else ""}
+                            {f" - {deal['discount_percent']:.0f}% off" if deal.get('discount_percent') else ""}
+                        </p>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">
+                            {deal['store_name']} - {deal['store_city']} | Category: {deal.get('category', 'Unknown')}
+                        </p>
+                    </div>
+                    """
+
+                html_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                </head>
+                <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h1 style="color: #10b981; margin-bottom: 20px;">✅ Preference Test Results</h1>
+
+                    <p>Hi {user_name},</p>
+
+                    <p>Great news! We found <strong>{len(deals)} deals</strong> that match your current preferences:</p>
+
+                    {prefs_html}
+
+                    <h2 style="color: #374151; margin: 24px 0 16px 0;">Matching Deals:</h2>
+                    {deals_html}
+
+                    <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+                        This is a test email sent when you updated your preferences. You'll receive similar notifications when new deals matching your preferences are found.
+                    </p>
+                </body>
+                </html>
+                """
+            else:
+                html_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                </head>
+                <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h1 style="color: #f59e0b; margin-bottom: 20px;">ℹ️ Preference Test Results</h1>
+
+                    <p>Hi {user_name},</p>
+
+                    <p>We tested your current preferences, but no deals are currently available that match your criteria.</p>
+
+                    {prefs_html}
+
+                    <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                        <h3 style="margin: 0 0 8px 0; color: #92400e;">💡 Tips to find more deals:</h3>
+                        <ul style="margin: 0; padding-left: 20px; color: #92400e;">
+                            <li>Try lowering your minimum discount percentage</li>
+                            <li>Select more stores in your city</li>
+                            <li>Add more favorite categories</li>
+                            <li>Check back later - new deals are added throughout the day!</li>
+                        </ul>
+                    </div>
+
+                    <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+                        This is a test email sent when you updated your preferences. You'll receive notifications when new deals matching your preferences are found.
+                    </p>
+                </body>
+                </html>
+                """
+
+            # Attach HTML content
+            html_part = MIMEText(html_content, 'html')
+            msg.attach(html_part)
+
+            # Send email
+            with smtplib.SMTP('smtp.gmail.com', 587) as server:
+                server.starttls()
+                server.login(self.gmail_email, self.gmail_password)
+                server.send_message(msg)
+
+            logger.info(f"Gmail preference test email sent successfully to {to_email}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send Gmail preference test email to {to_email}: {e}")
+            return False
+
 
 # Global email service instance
 email_service = EmailService()
