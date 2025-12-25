@@ -193,9 +193,12 @@ Railway will automatically set DATABASE_URL and REDIS_URL when you add the datab
         return self
 
     model_config = SettingsConfigDict(
+        # Try .env file for local development, but don't fail if it doesn't exist
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
+        # Environment variables take precedence over .env file
+        env_nested_delimiter="__",
     )
 
 
