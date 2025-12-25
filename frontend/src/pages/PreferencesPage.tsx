@@ -10,7 +10,9 @@ import { Navbar } from '../components/layout/Navbar';
 import type { UserPreference, Store } from '../types';
 
 export const PreferencesPage: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [preferences, setPreferences] = useState<UserPreference | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

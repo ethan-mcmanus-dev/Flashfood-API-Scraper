@@ -12,6 +12,7 @@ import { Navbar } from '../components/layout/Navbar';
 import type { WebSocketMessage } from '../types';
 
 export const DashboardPage: React.FC = () => {
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
 
