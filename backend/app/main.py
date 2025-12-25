@@ -20,6 +20,8 @@ from app.core.config import settings
 from app.core.startup import startup_validator, DiagnosticReporter, ComponentStatus
 from app.db.database import engine
 from app.db.base import Base
+from app.db.database import engine
+from app.db.base import Base
 from app.services.websocket import manager
 from app.services.scheduler import scheduler
 from app.models.user import User
@@ -71,10 +73,9 @@ async def lifespan(app: FastAPI):
 
     # Create database tables (only if database validation passed)
     try:
-        # Skip database table creation for now to avoid startup failures
-        logger.info("Skipping database table creation for initial deployment debugging")
-        # Base.metadata.create_all(bind=engine)
-        # logger.info("Database tables created")
+        logger.info("Creating database tables...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
     except Exception as e:
         logger.error(f"Database table creation failed: {e}")
         # Don't raise error - let's get the app running first
