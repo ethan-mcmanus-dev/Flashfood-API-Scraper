@@ -96,24 +96,32 @@ class Settings(BaseSettings):
             if not v:
                 return []
             
+            logger.info(f"Parsing CORS origins from string: '{v}'")
+            
             # Try JSON format first
             if v.startswith('[') and v.endswith(']'):
                 try:
                     parsed = json.loads(v)
                     if isinstance(parsed, list):
+                        logger.info(f"Parsed CORS origins from JSON: {parsed}")
                         return [str(item).strip() for item in parsed if item]
                 except json.JSONDecodeError:
                     pass
             
             # Try comma-separated
             if ',' in v:
-                return [item.strip() for item in v.split(',') if item.strip()]
+                result = [item.strip() for item in v.split(',') if item.strip()]
+                logger.info(f"Parsed CORS origins from CSV: {result}")
+                return result
             
             # Try space-separated
             if ' ' in v:
-                return [item.strip() for item in v.split() if item.strip()]
+                result = [item.strip() for item in v.split() if item.strip()]
+                logger.info(f"Parsed CORS origins from space-separated: {result}")
+                return result
             
             # Single value
+            logger.info(f"Using single CORS origin: [{v}]")
             return [v]
         
         # Fallback to default
