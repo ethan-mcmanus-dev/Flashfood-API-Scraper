@@ -186,9 +186,12 @@ Railway will automatically set DATABASE_URL and REDIS_URL when you add the datab
         
         # Validate CORS origins format
         for origin in self.BACKEND_CORS_ORIGINS:
+            # Allow wildcard for development/testing
+            if origin == "*":
+                continue
             if not origin.startswith(('http://', 'https://')):
                 logger.error(f"Invalid CORS origin format: {origin}")
-                raise ValueError(f"CORS origins must start with http:// or https://")
+                raise ValueError(f"CORS origins must start with http:// or https:// (or use '*' for wildcard)")
         
         return self
 
