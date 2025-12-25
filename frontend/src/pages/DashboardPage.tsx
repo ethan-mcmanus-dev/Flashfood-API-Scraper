@@ -2,21 +2,18 @@
  * Main dashboard page displaying personalized deals based on user preferences.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { productApi, preferenceApi } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAuth } from '../contexts/AuthContext';
 import { DealCard } from '../components/deals/DealCard';
 import { Navbar } from '../components/layout/Navbar';
-import type { Product, WebSocketMessage } from '../types';
+import type { WebSocketMessage } from '../types';
 
 export const DashboardPage: React.FC = () => {
-  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [notification, setNotification] = useState<string | null>(null);
-
-  const token = localStorage.getItem('access_token');
 
   // Fetch user preferences
   const { data: preferences } = useQuery({
@@ -40,7 +37,7 @@ export const DashboardPage: React.FC = () => {
   });
 
   // WebSocket for real-time updates (temporarily disabled to prevent connection loop)
-  const { lastMessage } = useWebSocket(null, {
+  const { } = useWebSocket(null, {
     onMessage: (message: WebSocketMessage) => {
       if (message.type === 'new_deals') {
         setNotification(message.message);
