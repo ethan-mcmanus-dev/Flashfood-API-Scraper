@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize Redis connection (optional, warnings already logged)
     try:
-        app.state.redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+        app.state.redis = Redis.from_url(settings.get_redis_url(), decode_responses=True)
         app.state.redis.ping()
         logger.info("Redis connection established")
     except Exception as e:
