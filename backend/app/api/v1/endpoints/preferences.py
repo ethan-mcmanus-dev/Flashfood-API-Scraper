@@ -101,13 +101,45 @@ async def update_preferences(
             detail="Failed to update preferences"
         )
 
-    # Send email in background task (don't await - let it run separately)
+    # Send email in background task (fire-and-forget)
     if preferences.email_notifications:
-        import asyncio
-        asyncio.create_task(send_preference_email_background(current_user.id, preferences.id))
-        logger.info(f"Scheduled background email task for user {current_user.email}")
+        try:
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor
+            
+            # Use thread pool to completely separate the email task
+            executor = ThreadPoolExecutor(max_workers=1)
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(executor, send_preference_email_sync, current_user.id, preferences.id)
+            logger.info(f"Queued background email task for user {current_user.email}")
+        except Exception as e:
+            logger.error(f"Failed to queue email task: {e}")
 
     return preferences
+
+
+def send_preference_email_sync(user_id: int, preference_id: int):
+    """
+    Synchronous wrapper for sending preference email.
+    Runs in thread pool to avoid blocking the main request.
+    """
+    try:
+        import asyncio
+        
+        # Create new event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Run the async email function
+        loop.run_until_complete(send_preference_email_background(user_id, preference_id))
+        
+    except Exception as e:
+        logger.error(f"Failed in sync email wrapper: {e}")
+    finally:
+        try:
+            loop.close()
+        except:
+            pass
 
 
 async def send_preference_email_background(user_id: int, preference_id: int):
