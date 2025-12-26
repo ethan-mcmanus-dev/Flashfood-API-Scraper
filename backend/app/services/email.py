@@ -137,9 +137,8 @@ class EmailService:
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
 
-            # Send email
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                server.starttls()
+            # Send email - try port 465 (SSL) for Railway compatibility
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
                 server.login(self.gmail_email, self.gmail_password)
                 server.send_message(msg)
 
@@ -394,9 +393,8 @@ class EmailService:
             html_part = MIMEText(html_content, 'html')
             msg.attach(html_part)
 
-            # Send email
-            with smtplib.SMTP('smtp.gmail.com', 587) as server:
-                server.starttls()
+            # Send email - try port 465 (SSL) for Railway compatibility
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
                 server.login(self.gmail_email, self.gmail_password)
                 server.send_message(msg)
 
