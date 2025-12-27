@@ -243,24 +243,38 @@ class EmailService:
         to_email: str,
         user_name: str,
         deals: List[Dict[str, Any]],
+        total_count: int,
         preferences_summary: Dict[str, Any],
     ) -> bool:
         """
         Send test email with deals matching user preferences.
+        
+        Args:
+            to_email: Recipient email address
+            user_name: User's display name
+            deals: List of deal dictionaries (limited for display)
+            total_count: Total number of matching deals
+            preferences_summary: Summary of user's preferences
         """
         if self.service == "mock":
+            # Create subject with proper count display
+            if total_count > len(deals):
+                subject = f"✅ Preference Test: {total_count} deals match (showing top {len(deals)})"
+            else:
+                subject = f"✅ Preference Test: {total_count} deals match your settings!"
+                
             logger.info(f"MOCK EMAIL - Preference test with matches to {to_email}:")
-            logger.info(f"Subject: ✅ Preference Test: {len(deals)} deals match your settings!")
+            logger.info(f"Subject: {subject}")
             logger.info(f"Recipient: {user_name} ({to_email})")
             logger.info(f"Preferences: City={preferences_summary.get('city')}, Min Discount={preferences_summary.get('min_discount')}%")
             logger.info(f"Matching deals: {[deal['name'] for deal in deals[:5]]}")
             return True
 
         elif self.service == "gmail":
-            return await self._send_preference_test_gmail(to_email, user_name, deals, preferences_summary, has_matches=True)
+            return await self._send_preference_test_gmail(to_email, user_name, deals, total_count, preferences_summary, has_matches=True)
             
         elif self.service == "resend":
-            return await self._send_preference_test_resend(to_email, user_name, deals, preferences_summary, has_matches=True)
+            return await self._send_preference_test_resend(to_email, user_name, deals, total_count, preferences_summary, has_matches=True)
             
         return False
 
@@ -281,10 +295,10 @@ class EmailService:
             return True
 
         elif self.service == "gmail":
-            return await self._send_preference_test_gmail(to_email, user_name, [], preferences_summary, has_matches=False)
+            return await self._send_preference_test_gmail(to_email, user_name, [], 0, preferences_summary, has_matches=False)
             
         elif self.service == "resend":
-            return await self._send_preference_test_resend(to_email, user_name, [], preferences_summary, has_matches=False)
+            return await self._send_preference_test_resend(to_email, user_name, [], 0, preferences_summary, has_matches=False)
             
         return False
 
@@ -293,6 +307,7 @@ class EmailService:
         to_email: str,
         user_name: str,
         deals: List[Dict[str, Any]],
+        total_count: int,
         preferences_summary: Dict[str, Any],
         has_matches: bool,
     ) -> bool:
@@ -301,7 +316,11 @@ class EmailService:
             # Create message
             msg = MIMEMultipart('alternative')
             if has_matches:
-                msg['Subject'] = f"✅ Preference Test: {len(deals)} deals match your settings!"
+                # Create subject with proper count display
+                if total_count > len(deals):
+                    msg['Subject'] = f"✅ Preference Test: {total_count} deals match (showing top {len(deals)})"
+                else:
+                    msg['Subject'] = f"✅ Preference Test: {total_count} deals match your settings!"
             else:
                 msg['Subject'] = "ℹ️ Preference Test: No current deals match your settings"
             msg['From'] = self.gmail_email
@@ -349,7 +368,7 @@ class EmailService:
 
                     <p>Hi {user_name},</p>
 
-                    <p>Great news! We found <strong>{len(deals)} deals</strong> that match your current preferences:</p>
+                    <p>Great news! We found <strong>{total_count} deals</strong> that match your current preferences{f" (showing top {len(deals)})" if total_count > len(deals) else ""}:</p>
 
                     {prefs_html}
 
@@ -416,6 +435,7 @@ class EmailService:
         to_email: str,
         user_name: str,
         deals: List[Dict[str, Any]],
+        total_count: int,
         preferences_summary: Dict[str, Any],
         has_matches: bool,
     ) -> bool:
@@ -426,7 +446,11 @@ class EmailService:
             resend.api_key = self.api_key
 
             if has_matches:
-                subject = f"✅ Preference Test: {len(deals)} deals match your settings!"
+                # Create subject with proper count display
+                if total_count > len(deals):
+                    subject = f"✅ Preference Test: {total_count} deals match (showing top {len(deals)})"
+                else:
+                    subject = f"✅ Preference Test: {total_count} deals match your settings!"
                 
                 # Build deals HTML
                 deals_html = ""
@@ -447,7 +471,7 @@ class EmailService:
                 
                 content = f"""
                 <p>Hi {user_name},</p>
-                <p>Great news! We found <strong>{len(deals)} deals</strong> that match your current preferences:</p>
+                <p>Great news! We found <strong>{total_count} deals</strong> that match your current preferences{f" (showing top {len(deals)})" if total_count > len(deals) else ""}:</p>
                 {deals_html}
                 """
             else:

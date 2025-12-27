@@ -6,7 +6,7 @@ Tracks current deals, pricing, and availability.
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, Index
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -46,7 +46,7 @@ class Product(Base):
     original_price = Column(Float, nullable=True)
     discount_price = Column(Float, nullable=False)
     discount_percent = Column(Integer, nullable=True)
-    quantity_available = Column(Integer, default=0, nullable=False)
+    quantity_available = Column(Integer, default=0, nullable=False, index=True)  # Add index for filtering
     expiry_date = Column(DateTime, nullable=True)
     image_url = Column(String, nullable=True)
     first_seen = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -60,3 +60,13 @@ class Product(Base):
     # Relationships
     store = relationship("Store", back_populates="products")
     price_history = relationship("PriceHistory", back_populates="product", cascade="all, delete-orphan")
+
+    # Composite indexes for common query patterns
+    __table_args__ = (
+        # Index for filtering by store and availability (most common query)
+        Index('idx_product_store_quantity', 'store_id', 'quantity_available'),
+        # Index for filtering by category and availability  
+        Index('idx_product_category_quantity', 'category', 'quantity_available'),
+        # Index for discount filtering
+        Index('idx_product_discount', 'discount_percent', 'quantity_available'),
+    )

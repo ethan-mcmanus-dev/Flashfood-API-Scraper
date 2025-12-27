@@ -259,15 +259,17 @@ class NotificationService:
         self, 
         user: User, 
         products: List[Product], 
-        preferences: UserPreference
+        preferences: UserPreference,
+        total_count: int = None
     ) -> bool:
         """
         Send a test email with current deals matching user preferences.
         
         Args:
             user: User to send email to
-            products: List of matching products
+            products: List of matching products (limited for display)
             preferences: User's current preferences
+            total_count: Total number of matching products (before limiting)
             
         Returns:
             True if email sent successfully
@@ -306,6 +308,7 @@ class NotificationService:
                     to_email=user.email,
                     user_name=user.full_name or user.email,
                     deals=deals_data,
+                    total_count=total_count or len(products),
                     preferences_summary={
                         "city": preferences.city,
                         "min_discount": preferences.min_discount_percent,

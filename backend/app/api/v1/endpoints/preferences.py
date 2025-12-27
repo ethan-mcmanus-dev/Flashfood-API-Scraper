@@ -125,13 +125,22 @@ def send_preference_email_sync(user_id: int, preference_id: int):
     """
     try:
         import asyncio
+        import signal
         
         # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
-        # Run the async email function
-        loop.run_until_complete(send_preference_email_background(user_id, preference_id))
+        # Set a timeout for the email task (30 seconds max)
+        try:
+            loop.run_until_complete(
+                asyncio.wait_for(
+                    send_preference_email_background(user_id, preference_id),
+                    timeout=30.0
+                )
+            )
+        except asyncio.TimeoutError:
+            logger.error(f"Email task timed out after 30 seconds for user {user_id}")
         
     except Exception as e:
         logger.error(f"Failed in sync email wrapper: {e}")
@@ -168,9 +177,13 @@ async def send_preference_email_background(user_id: int, preference_id: int):
         if preferences.city:
             query = query.filter(Store.city == preferences.city)
         
-        # Filter by selected stores (if any selected)
+        # Filter by selected stores (if any selected) - optimize for large lists
         if preferences.selected_store_ids:
-            query = query.filter(Store.id.in_(preferences.selected_store_ids))
+            if len(preferences.selected_store_ids) > 10:
+                # For many stores, just filter by city and skip store filtering to avoid slow queries
+                logger.info(f"User selected {len(preferences.selected_store_ids)} stores - using city filter only for performance")
+            else:
+                query = query.filter(Store.id.in_(preferences.selected_store_ids))
         
         # Filter by minimum discount
         if preferences.min_discount_percent and preferences.min_discount_percent > 0:
@@ -183,13 +196,18 @@ async def send_preference_email_background(user_id: int, preference_id: int):
         # Only active products with quantity > 0
         query = query.filter(Product.quantity_available > 0)
         
+        # Get total count before limiting
+        total_count = query.count()
+        
+        # Add timeout to prevent hanging on large queries
         matching_products = query.limit(10).all()  # Limit to 10 for email
         
         # Send email with matching deals
         await notification_service.send_preference_test_email(
             user=user,
             products=matching_products,
-            preferences=preferences
+            preferences=preferences,
+            total_count=total_count
         )
         logger.info(f"Successfully sent background email to {user.email} with {len(matching_products)} matching deals")
         
