@@ -206,6 +206,24 @@ async def manual_refresh():
         raise HTTPException(status_code=500, detail=f"Refresh failed: {str(e)}")
 
 
+# Email service debug endpoint
+@app.get("/debug-email")
+def debug_email():
+    """
+    Debug endpoint to check email service configuration.
+    """
+    from app.services.email import email_service
+    return {
+        "email_service": email_service.service,
+        "email_service_type": type(email_service.service).__name__,
+        "resend_api_key_set": bool(getattr(email_service, 'api_key', None)),
+        "from_email": getattr(email_service, 'from_email', None),
+        "settings_email_service": settings.EMAIL_SERVICE,
+        "settings_resend_key_set": bool(settings.RESEND_API_KEY),
+        "settings_email_from": settings.EMAIL_FROM,
+    }
+
+
 # WebSocket endpoint for real-time notifications
 @app.websocket("/ws")
 async def websocket_endpoint(
