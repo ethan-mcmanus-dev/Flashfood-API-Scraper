@@ -259,6 +259,9 @@ class EmailService:
         elif self.service == "gmail":
             return await self._send_preference_test_gmail(to_email, user_name, deals, preferences_summary, has_matches=True)
             
+        elif self.service == "resend":
+            return await self._send_preference_test_resend(to_email, user_name, deals, preferences_summary, has_matches=True)
+            
         return False
 
     async def send_preference_test_no_matches(
@@ -279,6 +282,9 @@ class EmailService:
 
         elif self.service == "gmail":
             return await self._send_preference_test_gmail(to_email, user_name, [], preferences_summary, has_matches=False)
+            
+        elif self.service == "resend":
+            return await self._send_preference_test_resend(to_email, user_name, [], preferences_summary, has_matches=False)
             
         return False
 
@@ -403,6 +409,91 @@ class EmailService:
 
         except Exception as e:
             logger.error(f"Failed to send Gmail preference test email to {to_email}: {e}")
+            return False
+
+    async def _send_preference_test_resend(
+        self,
+        to_email: str,
+        user_name: str,
+        deals: List[Dict[str, Any]],
+        preferences_summary: Dict[str, Any],
+        has_matches: bool,
+    ) -> bool:
+        """Send preference test email via Resend API."""
+        try:
+            import resend
+
+            resend.api_key = self.api_key
+
+            if has_matches:
+                subject = f"✅ Preference Test: {len(deals)} deals match your settings!"
+                
+                # Build deals HTML
+                deals_html = ""
+                for deal in deals[:10]:
+                    deals_html += f"""
+                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <h3 style="margin: 0 0 8px 0;">{deal['name']}</h3>
+                        <p style="margin: 0; color: #6b7280;">
+                            <strong>${deal['discount_price']:.2f}</strong>
+                            {f" (was ${deal['original_price']:.2f})" if deal.get('original_price') else ""}
+                            {f" - {deal['discount_percent']:.0f}% off" if deal.get('discount_percent') else ""}
+                        </p>
+                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">
+                            {deal['store_name']} - {deal['store_city']}
+                        </p>
+                    </div>
+                    """
+                
+                content = f"""
+                <p>Hi {user_name},</p>
+                <p>Great news! We found <strong>{len(deals)} deals</strong> that match your current preferences:</p>
+                {deals_html}
+                """
+            else:
+                subject = "ℹ️ Preference Test: No current deals match your settings"
+                content = f"""
+                <p>Hi {user_name},</p>
+                <p>We checked for deals matching your preferences, but didn't find any right now.</p>
+                <p>Your current settings:</p>
+                <ul>
+                    <li><strong>City:</strong> {preferences_summary.get('city', 'Not set')}</li>
+                    <li><strong>Minimum discount:</strong> {preferences_summary.get('min_discount', 0)}%</li>
+                    <li><strong>Categories:</strong> {', '.join(preferences_summary.get('categories', [])) or 'All categories'}</li>
+                    <li><strong>Selected stores:</strong> {preferences_summary.get('store_count', 0)} stores</li>
+                </ul>
+                <p>Don't worry - we'll notify you as soon as new deals matching your preferences become available!</p>
+                """
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+            </head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h1 style="color: #10b981; margin-bottom: 20px;">Flashfood Preferences Updated!</h1>
+                {content}
+                <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
+                    You're receiving this email because you updated your Flashfood Tracker preferences.
+                </p>
+            </body>
+            </html>
+            """
+
+            params = {
+                "from": self.from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+            }
+
+            email = resend.Emails.send(params)
+            logger.info(f"Resend preference test email sent successfully to {to_email}: {email}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send Resend preference test email to {to_email}: {e}")
             return False
 
 
